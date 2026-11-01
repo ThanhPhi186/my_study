@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../models/schedule_model.dart';
+import '../models/term_model.dart';
 import '../services/local_storage_service.dart';
 
 class ScheduleTab extends StatefulWidget {
@@ -13,9 +14,11 @@ class ScheduleTab extends StatefulWidget {
 
 class _ScheduleTabState extends State<ScheduleTab> {
   late List<ScheduleModel> _allSchedules;
+  late List<TermModel> _terms;
+  late TermModel _selectedTerm;
 
-  late DateTime _schoolStart;
-  late DateTime _schoolEnd;
+  late DateTime _schoolYearStart;
+  late DateTime _schoolYearEnd;
 
   // Selected week (1..totalWeeks, default 12 or clamped)
   int _selectedWeek = 12;
@@ -29,15 +32,17 @@ class _ScheduleTabState extends State<ScheduleTab> {
   @override
   void initState() {
     super.initState();
-    _loadDatesAndSchedules();
+    _loadData();
   }
 
-  void _loadDatesAndSchedules() {
-    _schoolStart = LocalStorageService.instance.getSchoolYearStartDate();
-    _schoolEnd = LocalStorageService.instance.getSchoolYearEndDate();
+  void _loadData() {
+    _schoolYearStart = LocalStorageService.instance.getSchoolYearStartDate();
+    _schoolYearEnd = LocalStorageService.instance.getSchoolYearEndDate();
     _allSchedules = LocalStorageService.instance.getSchedules();
+    _terms = LocalStorageService.instance.getTerms();
+    _selectedTerm = LocalStorageService.instance.getSelectedTerm();
 
-    final total = _calculateTotalWeeks(_schoolStart, _schoolEnd);
+    final total = _selectedTerm.totalWeeks;
     if (_selectedWeek > total) {
       _selectedWeek = total;
     }
@@ -47,30 +52,15 @@ class _ScheduleTabState extends State<ScheduleTab> {
     setState(() {});
   }
 
-  // Calculate Monday of the first week (Week 1) from the school year start date
-  DateTime _getMondayOfFirstWeek(DateTime start) {
-    return DateTime(start.year, start.month, start.day).subtract(Duration(days: start.weekday - 1));
-  }
-
-  // Total weeks from start to end date
-  int _calculateTotalWeeks(DateTime start, DateTime end) {
-    final firstMonday = _getMondayOfFirstWeek(start);
-    final lastSunday = DateTime(end.year, end.month, end.day).add(Duration(days: 7 - end.weekday));
-    final diffDays = lastSunday.difference(firstMonday).inDays + 1;
-    return (diffDays / 7).round().clamp(1, 100);
-  }
-
-  int get _totalWeeks => _calculateTotalWeeks(_schoolStart, _schoolEnd);
-
-  // Get Monday date for a given week number (1..totalWeeks)
-  DateTime _getMondayOfWeek(int week) {
-    final firstMonday = _getMondayOfFirstWeek(_schoolStart);
-    return firstMonday.add(Duration(days: (week - 1) * 7));
-  }
-
-  List<DateTime> _getDaysOfWeek(int week) {
-    final monday = _getMondayOfWeek(week);
-    return List.generate(7, (i) => monday.add(Duration(days: i)));
+  void _switchTerm(TermModel term) async {
+    await LocalStorageService.instance.setSelectedTermId(term.id);
+    setState(() {
+      _selectedTerm = term;
+      if (_selectedWeek > term.totalWeeks) {
+        _selectedWeek = 1;
+      }
+    });
+    widget.onDataChanged();
   }
 
   void _previousWeek() {
@@ -82,7 +72,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   void _nextWeek() {
-    if (_selectedWeek < _totalWeeks) {
+    if (_selectedWeek < _selectedTerm.totalWeeks) {
       setState(() {
         _selectedWeek++;
       });
@@ -95,21 +85,23 @@ class _ScheduleTabState extends State<ScheduleTab> {
     return '$d/$m/${dt.year}';
   }
 
-  void _showSchoolYearConfigDialog() {
-    DateTime tempStart = _schoolStart;
-    DateTime tempEnd = _schoolEnd;
+  // --- School Year Configuration Dialog (Start of Year & End of Year) ---
+  void _showSchoolYearDialog() {
+    DateTime tempStart = _schoolYearStart;
+    DateTime tempEnd = _schoolYearEnd;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final totalWeeksPreview = _calculateTotalWeeks(tempStart, tempEnd);
+          final diffDays = tempEnd.difference(tempStart).inDays + 1;
+          final totalWeeksPreview = (diffDays / 7).round().clamp(1, 100);
 
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: const Row(
               children: [
-                Icon(Icons.edit_calendar_rounded, color: Color(0xFF5B50EC), size: 24),
+                Icon(Icons.calendar_month_rounded, color: Color(0xFF5B50EC), size: 24),
                 SizedBox(width: 10),
                 Text(
                   'Cài đặt năm học',
@@ -123,14 +115,14 @@ class _ScheduleTabState extends State<ScheduleTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Thiết lập ngày bắt đầu và kết thúc năm học. Tuần 1 bắt đầu từ ngày đầu năm học, và tuần cuối cùng kết thúc vào ngày bế giảng.',
+                    'Thiết lập ngày bắt đầu và ngày kết thúc của toàn bộ năm học (Start of Year & End of Year).',
                     style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 20),
 
-                  // Ngày bắt đầu năm học (Bắt đầu Tuần 1)
+                  // Start of the year
                   const Text(
-                    'Ngày bắt đầu năm học (Tuần 1):',
+                    'Ngày bắt đầu năm học (Start of Year):',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
@@ -166,11 +158,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                           const SizedBox(width: 10),
                           Text(
                             _formatDate(tempStart),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                           ),
                           const Spacer(),
                           const Text(
@@ -183,9 +171,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Ngày kết thúc năm học (Tuần cuối)
+                  // End of the year
                   const Text(
-                    'Ngày kết thúc năm học (Tuần cuối):',
+                    'Ngày kết thúc năm học (End of Year):',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 8),
@@ -218,11 +206,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                           const SizedBox(width: 10),
                           Text(
                             _formatDate(tempEnd),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                           ),
                           const Spacer(),
                           const Text(
@@ -235,7 +219,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Summary info card
+                  // Summary info
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
@@ -252,7 +236,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                             const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF4F46E5)),
                             const SizedBox(width: 8),
                             Text(
-                              'Tổng cộng: $totalWeeksPreview tuần',
+                              'Tổng thời lượng: $totalWeeksPreview tuần',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -263,7 +247,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '• Tuần 1: ${_formatDate(tempStart)} – ${_formatDate(_getMondayOfFirstWeek(tempStart).add(const Duration(days: 6)))}\n• Tuần $totalWeeksPreview: Kết thúc ngày ${_formatDate(tempEnd)}',
+                          '• Bắt đầu: ${_formatDate(tempStart)}\n• Kết thúc: ${_formatDate(tempEnd)}',
                           style: const TextStyle(fontSize: 12, color: Color(0xFF4338CA), height: 1.4),
                         ),
                       ],
@@ -288,13 +272,13 @@ class _ScheduleTabState extends State<ScheduleTab> {
                     start: tempStart,
                     end: tempEnd,
                   );
-                  _loadDatesAndSchedules();
+                  _loadData();
                   widget.onDataChanged();
                   if (ctx.mounted) {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Đã cập nhật năm học! Tổng số: $totalWeeksPreview tuần.'),
+                        content: Text('Đã cập nhật năm học: ${_formatDate(tempStart)} – ${_formatDate(tempEnd)}'),
                         backgroundColor: const Color(0xFF10B981),
                       ),
                     );
@@ -309,8 +293,570 @@ class _ScheduleTabState extends State<ScheduleTab> {
     );
   }
 
+  // --- Add Term Dialog (Fixes the date current term ends and next term starts) ---
+  void _showAddTermDialog() {
+    final currentTerm = _selectedTerm;
+    final nextTermNameCtrl = TextEditingController(text: 'Học kỳ ${_terms.length + 1}');
+
+    // Default dates:
+    // dateTermEnds: mid-point of current term or current term's end date
+    DateTime dateTermEnds = currentTerm.endDate;
+    if (dateTermEnds.isAfter(_schoolYearEnd)) {
+      dateTermEnds = _schoolYearEnd.subtract(const Duration(days: 120));
+    }
+
+    // dateNextTermStarts: the day after the current term ends
+    DateTime dateNextTermStarts = dateTermEnds.add(const Duration(days: 1));
+
+    // nextTermEndDate: defaults to End of the Year
+    DateTime nextTermEndDate = _schoolYearEnd;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final currentTermWeeks = (dateTermEnds.difference(currentTerm.startDate).inDays + 1) ~/ 7;
+          final nextTermWeeks = (nextTermEndDate.difference(dateNextTermStarts).inDays + 1) ~/ 7;
+          final breakDays = dateNextTermStarts.difference(dateTermEnds).inDays - 1;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Row(
+              children: [
+                Icon(Icons.add_chart_rounded, color: Color(0xFF5B50EC), size: 24),
+                SizedBox(width: 10),
+                Text(
+                  'Thêm học kỳ mới (Add Term)',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Nhập ngày kết thúc của kỳ hiện tại và ngày bắt đầu của kỳ tiếp theo.',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Section 1: Current Term End Date
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                currentTerm.name,
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Bắt đầu: ${_formatDate(currentTerm.startDate)}',
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Ngày học kỳ này kết thúc (Date term ends):',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: dateTermEnds.isAfter(currentTerm.startDate)
+                                  ? dateTermEnds
+                                  : currentTerm.startDate.add(const Duration(days: 30)),
+                              firstDate: currentTerm.startDate.add(const Duration(days: 7)),
+                              lastDate: _schoolYearEnd.subtract(const Duration(days: 7)),
+                              helpText: 'CHỌN NGÀY KẾT THÚC ${currentTerm.name.toUpperCase()}',
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                dateTermEnds = picked;
+                                if (!dateNextTermStarts.isAfter(dateTermEnds)) {
+                                  dateNextTermStarts = dateTermEnds.add(const Duration(days: 1));
+                                }
+                                if (!nextTermEndDate.isAfter(dateNextTermStarts)) {
+                                  nextTermEndDate = _schoolYearEnd;
+                                }
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.event_busy_rounded, color: Color(0xFFF43F5E), size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDate(dateTermEnds),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                ),
+                                const Spacer(),
+                                const Text(
+                                  'Chọn ngày',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5B50EC)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Section 2: Next Term Configuration
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFC7D2FE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Học kỳ tiếp theo (Next term):',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: nextTermNameCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Tên học kỳ tiếp theo',
+                            isDense: true,
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFC7D2FE)),
+                            ),
+                          ),
+                          onChanged: (_) => setDialogState(() {}),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Date next term starts
+                        const Text(
+                          'Ngày bắt đầu kỳ tiếp theo (Date next term starts):',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: dateNextTermStarts.isAfter(dateTermEnds)
+                                  ? dateNextTermStarts
+                                  : dateTermEnds.add(const Duration(days: 1)),
+                              firstDate: dateTermEnds.add(const Duration(days: 1)),
+                              lastDate: _schoolYearEnd,
+                              helpText: 'CHỌN NGÀY BẮT ĐẦU KỲ TIẾP THEO',
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                dateNextTermStarts = picked;
+                                if (!nextTermEndDate.isAfter(dateNextTermStarts)) {
+                                  nextTermEndDate = dateNextTermStarts.add(const Duration(days: 60));
+                                }
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFC7D2FE)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.event_available_rounded, color: Color(0xFF5B50EC), size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDate(dateNextTermStarts),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                ),
+                                const Spacer(),
+                                const Text(
+                                  'Chọn ngày',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5B50EC)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Date next term ends
+                        const Text(
+                          'Ngày kết thúc kỳ tiếp theo (Next term ends):',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: nextTermEndDate.isAfter(dateNextTermStarts)
+                                  ? nextTermEndDate
+                                  : dateNextTermStarts.add(const Duration(days: 30)),
+                              firstDate: dateNextTermStarts.add(const Duration(days: 7)),
+                              lastDate: DateTime(2035),
+                              helpText: 'CHỌN NGÀY KẾT THÚC KỲ TIẾP THEO',
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                nextTermEndDate = picked;
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFC7D2FE)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.event_busy_rounded, color: Color(0xFF10B981), size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDate(nextTermEndDate),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                ),
+                                const Spacer(),
+                                const Text(
+                                  'Chọn ngày',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5B50EC)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Summary breakdown
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ${currentTerm.name}: ${_formatDate(currentTerm.startDate)} – ${_formatDate(dateTermEnds)} (~$currentTermWeeks tuần)',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        ),
+                        if (breakDays > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3.0),
+                            child: Text(
+                              '• Nghỉ giữa kỳ: ${_formatDate(dateTermEnds.add(const Duration(days: 1)))} – ${_formatDate(dateNextTermStarts.subtract(const Duration(days: 1)))} ($breakDays ngày)',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFFF59E0B), fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '• ${nextTermNameCtrl.text.trim().isEmpty ? "Học kỳ tiếp" : nextTermNameCtrl.text.trim()}: ${_formatDate(dateNextTermStarts)} – ${_formatDate(nextTermEndDate)} (~$nextTermWeeks tuần)',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5B50EC),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                onPressed: () async {
+                  if (!dateTermEnds.isAfter(currentTerm.startDate)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ngày kết thúc phải sau ngày bắt đầu!'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+                  if (!dateNextTermStarts.isAfter(dateTermEnds)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ngày bắt đầu kỳ tiếp theo phải sau ngày kết thúc kỳ hiện tại!'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+                  if (!nextTermEndDate.isAfter(dateNextTermStarts)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ngày kết thúc kỳ tiếp theo phải sau ngày bắt đầu!'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+
+                  final nextName = nextTermNameCtrl.text.trim().isEmpty ? 'Học kỳ ${_terms.length + 1}' : nextTermNameCtrl.text.trim();
+
+                  await LocalStorageService.instance.addNextTermTransition(
+                    currentTermId: currentTerm.id,
+                    currentTermEndDate: dateTermEnds,
+                    nextTermName: nextName,
+                    nextTermStartDate: dateNextTermStarts,
+                    nextTermEndDate: nextTermEndDate,
+                  );
+
+                  _loadData();
+                  widget.onDataChanged();
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Đã cập nhật ${currentTerm.name} và tạo mới $nextName!'),
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Xác nhận thêm học kỳ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // --- Edit Term Dialog ---
+  void _showEditTermDialog(TermModel term) {
+    final nameCtrl = TextEditingController(text: term.name);
+    DateTime tempStart = term.startDate;
+    DateTime tempEnd = term.endDate;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final tempTerm = TermModel(
+            id: term.id,
+            name: nameCtrl.text.trim(),
+            startDate: tempStart,
+            endDate: tempEnd,
+          );
+          final totalWeeksPreview = tempTerm.totalWeeks;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Row(
+              children: [
+                const Icon(Icons.edit_note_rounded, color: Color(0xFF5B50EC), size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Chỉnh sửa: ${term.name}',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Tên học kỳ',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Start date
+                  const Text('Ngày bắt đầu học kỳ:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: tempStart,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          tempStart = picked;
+                          if (tempEnd.isBefore(tempStart)) {
+                            tempEnd = tempStart.add(const Duration(days: 120));
+                          }
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event_available_rounded, color: Color(0xFF5B50EC), size: 20),
+                          const SizedBox(width: 10),
+                          Text(_formatDate(tempStart), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          const Text('Đổi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5B50EC))),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // End date
+                  const Text('Ngày kết thúc học kỳ:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: tempEnd.isAfter(tempStart) ? tempEnd : tempStart.add(const Duration(days: 1)),
+                        firstDate: tempStart,
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          tempEnd = picked;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event_busy_rounded, color: Color(0xFFF43F5E), size: 20),
+                          const SizedBox(width: 10),
+                          Text(_formatDate(tempEnd), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          const Text('Đổi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5B50EC))),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFC7D2FE)),
+                    ),
+                    child: Text(
+                      'Tổng số: $totalWeeksPreview tuần (${_formatDate(tempStart)} – ${_formatDate(tempEnd)})',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              if (_terms.length > 1)
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await LocalStorageService.instance.deleteTerm(term.id);
+                    _loadData();
+                    widget.onDataChanged();
+                  },
+                  child: const Text('Xóa kỳ này', style: TextStyle(color: Colors.red)),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5B50EC),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () async {
+                  final updated = term.copyWith(
+                    name: nameCtrl.text.trim().isEmpty ? term.name : nameCtrl.text.trim(),
+                    startDate: tempStart,
+                    endDate: tempEnd,
+                  );
+                  await LocalStorageService.instance.updateTerm(updated);
+                  _loadData();
+                  widget.onDataChanged();
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Cập nhật', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showWeekPickerModal() {
-    final total = _totalWeeks;
+    final total = _selectedTerm.totalWeeks;
 
     showModalBottomSheet(
       context: context,
@@ -330,9 +876,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Chọn tuần trong năm học',
-                        style: TextStyle(
+                      Text(
+                        'Chọn tuần trong ${_selectedTerm.name}',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -340,7 +886,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Từ ${_formatDate(_schoolStart)} đến ${_formatDate(_schoolEnd)} (Tổng $total tuần)',
+                        'Từ ${_formatDate(_selectedTerm.startDate)} đến ${_formatDate(_selectedTerm.endDate)} (Tổng $total tuần)',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -366,7 +912,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   itemCount: total,
                   itemBuilder: (context, index) {
                     final weekNum = index + 1;
-                    final monday = _getMondayOfWeek(weekNum);
+                    final monday = _selectedTerm.getMondayOfWeek(weekNum);
                     final isCurrent = weekNum == _selectedWeek;
 
                     return InkWell(
@@ -573,9 +1119,10 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   day: _dayNames[_selectedDayIndex],
                   dayOfWeek: _selectedDayIndex + 1,
                   week: _selectedWeek,
+                  termId: _selectedTerm.id,
                 );
                 await LocalStorageService.instance.addSchedule(newItem);
-                _loadDatesAndSchedules();
+                _loadData();
                 widget.onDataChanged();
                 if (ctx.mounted) Navigator.pop(ctx);
               },
@@ -672,7 +1219,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                 onTap: () async {
                   Navigator.pop(ctx);
                   await LocalStorageService.instance.deleteSchedule(item.id);
-                  _loadDatesAndSchedules();
+                  _loadData();
                   widget.onDataChanged();
                 },
               ),
@@ -689,7 +1236,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final userName = (user?.name != null && user!.name.isNotEmpty) ? user.name : 'Minh';
     final userInitial = userName[0].toUpperCase();
 
-    final daysOfWeek = _getDaysOfWeek(_selectedWeek);
+    final daysOfWeek = _selectedTerm.getDaysOfWeek(_selectedWeek);
     final selectedDay = daysOfWeek[_selectedDayIndex];
 
     // Filter schedules for the selected day
@@ -699,7 +1246,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final daySchedules = _allSchedules.where((s) {
       final matchesDay = s.dayOfWeek == selectedDayOfWeekNum || s.day == currentDayName;
       final matchesWeek = s.week == 0 || s.week == _selectedWeek;
-      return matchesDay && matchesWeek;
+      final matchesTerm = s.termId.isEmpty || s.termId == _selectedTerm.id;
+      return matchesDay && matchesWeek && matchesTerm;
     }).toList();
 
     // Sort by startTime
@@ -756,9 +1304,66 @@ class _ScheduleTabState extends State<ScheduleTab> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Title Row: "Thời khóa biểu" + "Năm học" Button
+            // School Year Pill Banner (Start of Year & End of Year)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: InkWell(
+                onTap: _showSchoolYearDialog,
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.school_rounded, size: 18, color: Color(0xFF4F46E5)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Năm học: ${_formatDate(_schoolYearStart)} – ${_formatDate(_schoolYearEnd)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Đổi năm học',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F46E5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Title Row: "Thời khóa biểu" + "Add term" Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -774,9 +1379,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  // Button to configure School Year Start & End Date
+                  // Dedicated "Add term" button
                   InkWell(
-                    onTap: _showSchoolYearConfigDialog,
+                    onTap: _showAddTermDialog,
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -789,7 +1394,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF4F46E5).withValues(alpha: 0.06),
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -798,10 +1403,10 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.edit_calendar_rounded, size: 16, color: Color(0xFF4F46E5)),
-                          SizedBox(width: 6),
+                          Icon(Icons.add_rounded, size: 16, color: Color(0xFF4F46E5)),
+                          SizedBox(width: 4),
                           Text(
-                            'Năm học',
+                            'Add term',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -813,6 +1418,113 @@ class _ScheduleTabState extends State<ScheduleTab> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Horizontal Terms Bar (Chips + Switcher + Edit option)
+            SizedBox(
+              height: 38,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _terms.length + 1,
+                itemBuilder: (context, idx) {
+                  if (idx == _terms.length) {
+                    // Small quick add term button
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: InkWell(
+                        onTap: _showAddTermDialog,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFCBD5E1),
+                              style: BorderStyle.solid,
+                              width: 1,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, size: 15, color: Color(0xFF64748B)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Thêm kỳ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final term = _terms[idx];
+                  final isSelected = term.id == _selectedTerm.id;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: () => _switchTerm(term),
+                      onLongPress: () => _showEditTermDialog(term),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF4F46E5) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFE2E8F0),
+                            width: 1.2,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              term.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isSelected ? Colors.white : const Color(0xFF475569),
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () => _showEditTermDialog(term),
+                                child: Icon(
+                                  Icons.edit_rounded,
+                                  size: 13,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 14),
@@ -869,9 +1581,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       icon: Icon(
                         Icons.chevron_right_rounded,
                         size: 26,
-                        color: _selectedWeek < _totalWeeks ? const Color(0xFF6366F1) : const Color(0xFFCBD5E1),
+                        color: _selectedWeek < _selectedTerm.totalWeeks ? const Color(0xFF6366F1) : const Color(0xFFCBD5E1),
                       ),
-                      onPressed: _selectedWeek < _totalWeeks ? _nextWeek : null,
+                      onPressed: _selectedWeek < _selectedTerm.totalWeeks ? _nextWeek : null,
                     ),
                   ],
                 ),

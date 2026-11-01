@@ -10,6 +10,7 @@ class ScheduleModel {
   final String day;
   final int dayOfWeek;
   final int week;
+  final String termId; // Optional term association
 
   ScheduleModel({
     required this.id,
@@ -21,10 +22,9 @@ class ScheduleModel {
     required this.backgroundColorValue,
     required this.foregroundColorValue,
     this.day = 'T3',
-    required this.dayOfWeek,
-    required this.week,
-  
-    
+    this.dayOfWeek = 2,
+    this.week = 12,
+    this.termId = '',
   });
 
   Map<String, dynamic> toJson() {
@@ -40,6 +40,7 @@ class ScheduleModel {
       'day': day,
       'dayOfWeek': dayOfWeek,
       'week': week,
+      'termId': termId,
     };
   }
 
@@ -69,6 +70,7 @@ class ScheduleModel {
       day: dayStr,
       dayOfWeek: parsedDayOfWeek,
       week: json['week'] ?? 12,
+      termId: json['termId'] ?? '',
     );
   }
 

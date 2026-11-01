@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../models/schedule_model.dart';
 import '../models/subject_model.dart';
+import '../models/term_model.dart';
 
 class LocalStorageService {
   static final LocalStorageService instance = LocalStorageService._internal();
@@ -14,9 +15,11 @@ class LocalStorageService {
   static const String _currentUserKey = 'sf_current_user_id';
   static const String _schedulesKey = 'sf_schedules_list';
   static const String _subjectsKey = 'sf_subjects_list';
-  static const String _seedVersionKey = 'sf_seed_version_v2';
+  static const String _seedVersionKey = 'sf_seed_version_v3';
   static const String _schoolYearStartKey = 'sf_school_year_start';
   static const String _schoolYearEndKey = 'sf_school_year_end';
+  static const String _termsKey = 'sf_terms_list';
+  static const String _currentTermKey = 'sf_current_term_id';
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -41,7 +44,7 @@ class LocalStorageService {
       await _prefs.setString(_currentUserKey, defaultUser.id);
     }
 
-    // 2. Seed default school year dates if empty
+    // 2. Seed default school year dates if empty (Start of the Year & End of the Year)
     if (!_prefs.containsKey(_schoolYearStartKey)) {
       await _prefs.setString(_schoolYearStartKey, DateTime(2026, 7, 27).toIso8601String());
     }
@@ -49,7 +52,29 @@ class LocalStorageService {
       await _prefs.setString(_schoolYearEndKey, DateTime(2027, 5, 30).toIso8601String());
     }
 
-    // 3. Seed default schedules (updated with T3 and all days)
+    // 3. Seed default terms if empty
+    final termsJson = _prefs.getStringList(_termsKey);
+    if (termsJson == null || termsJson.isEmpty) {
+      final defaultTerms = [
+        TermModel(
+          id: 'term_1',
+          name: 'Học kỳ I',
+          startDate: DateTime(2026, 7, 27),
+          endDate: DateTime(2027, 1, 17),
+        ),
+        TermModel(
+          id: 'term_2',
+          name: 'Học kỳ II',
+          startDate: DateTime(2027, 1, 18),
+          endDate: DateTime(2027, 5, 30),
+        ),
+      ];
+      final list = defaultTerms.map((t) => jsonEncode(t.toJson())).toList();
+      await _prefs.setStringList(_termsKey, list);
+      await _prefs.setString(_currentTermKey, 'term_1');
+    }
+
+    // 4. Seed default schedules (updated with T3 and all days)
     final bool hasNewSeed = _prefs.getBool(_seedVersionKey) ?? false;
     final schedulesJson = _prefs.getStringList(_schedulesKey);
 
@@ -68,6 +93,7 @@ class LocalStorageService {
           day: 'T3',
           dayOfWeek: 2,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t3_2',
@@ -81,6 +107,7 @@ class LocalStorageService {
           day: 'T3',
           dayOfWeek: 2,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t3_3',
@@ -94,6 +121,7 @@ class LocalStorageService {
           day: 'T3',
           dayOfWeek: 2,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t3_4',
@@ -107,6 +135,7 @@ class LocalStorageService {
           day: 'T3',
           dayOfWeek: 2,
           week: 12,
+          termId: 'term_1',
         ),
 
         // T2 (Monday 12)
@@ -122,6 +151,7 @@ class LocalStorageService {
           day: 'T2',
           dayOfWeek: 1,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t2_2',
@@ -135,6 +165,7 @@ class LocalStorageService {
           day: 'T2',
           dayOfWeek: 1,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t2_3',
@@ -148,6 +179,7 @@ class LocalStorageService {
           day: 'T2',
           dayOfWeek: 1,
           week: 12,
+          termId: 'term_1',
         ),
 
         // T4 (Wednesday 14)
@@ -163,6 +195,7 @@ class LocalStorageService {
           day: 'T4',
           dayOfWeek: 3,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t4_2',
@@ -176,6 +209,7 @@ class LocalStorageService {
           day: 'T4',
           dayOfWeek: 3,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t4_3',
@@ -189,6 +223,7 @@ class LocalStorageService {
           day: 'T4',
           dayOfWeek: 3,
           week: 12,
+          termId: 'term_1',
         ),
 
         // T5 (Thursday 15)
@@ -204,6 +239,7 @@ class LocalStorageService {
           day: 'T5',
           dayOfWeek: 4,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t5_2',
@@ -217,6 +253,7 @@ class LocalStorageService {
           day: 'T5',
           dayOfWeek: 4,
           week: 12,
+          termId: 'term_1',
         ),
 
         // T6 (Friday 16)
@@ -232,6 +269,7 @@ class LocalStorageService {
           day: 'T6',
           dayOfWeek: 5,
           week: 12,
+          termId: 'term_1',
         ),
         ScheduleModel(
           id: 'sch_t6_2',
@@ -245,6 +283,7 @@ class LocalStorageService {
           day: 'T6',
           dayOfWeek: 5,
           week: 12,
+          termId: 'term_1',
         ),
 
         // T7 (Saturday 17)
@@ -260,6 +299,7 @@ class LocalStorageService {
           day: 'T7',
           dayOfWeek: 6,
           week: 12,
+          termId: 'term_1',
         ),
       ];
 
@@ -268,7 +308,7 @@ class LocalStorageService {
       await _prefs.setBool(_seedVersionKey, true);
     }
 
-    // 4. Seed subjects
+    // 5. Seed subjects
     final subjectsJson = _prefs.getStringList(_subjectsKey);
     if (subjectsJson == null || subjectsJson.isEmpty) {
       final defaultSubjects = [
@@ -286,7 +326,113 @@ class LocalStorageService {
     }
   }
 
-  // --- School Year Configuration ---
+  // --- Terms Management ---
+
+  List<TermModel> getTerms() {
+    final list = _prefs.getStringList(_termsKey) ?? [];
+    return list.map((item) => TermModel.fromJson(jsonDecode(item))).toList();
+  }
+
+  Future<void> _saveTerms(List<TermModel> terms) async {
+    final list = terms.map((t) => jsonEncode(t.toJson())).toList();
+    await _prefs.setStringList(_termsKey, list);
+  }
+
+  Future<void> addTerm(TermModel term) async {
+    final terms = getTerms();
+    terms.add(term);
+    await _saveTerms(terms);
+    await setSelectedTermId(term.id);
+  }
+
+  /// Add next term transition: fixes the current term end date and starts the next term
+  Future<void> addNextTermTransition({
+    required String currentTermId,
+    required DateTime currentTermEndDate,
+    required String nextTermName,
+    required DateTime nextTermStartDate,
+    required DateTime nextTermEndDate,
+  }) async {
+    final terms = getTerms();
+    final idx = terms.indexWhere((t) => t.id == currentTermId);
+    if (idx != -1) {
+      terms[idx] = terms[idx].copyWith(endDate: currentTermEndDate);
+    }
+
+    final newTerm = TermModel(
+      id: 'term_${DateTime.now().millisecondsSinceEpoch}',
+      name: nextTermName,
+      startDate: nextTermStartDate,
+      endDate: nextTermEndDate,
+    );
+    terms.add(newTerm);
+    await _saveTerms(terms);
+    await setSelectedTermId(newTerm.id);
+  }
+
+  Future<void> updateTerm(TermModel term) async {
+    final terms = getTerms();
+    final idx = terms.indexWhere((t) => t.id == term.id);
+    if (idx != -1) {
+      terms[idx] = term;
+      await _saveTerms(terms);
+    }
+  }
+
+  Future<void> deleteTerm(String termId) async {
+    final terms = getTerms();
+    terms.removeWhere((t) => t.id == termId);
+    await _saveTerms(terms);
+    if (getSelectedTermId() == termId) {
+      if (terms.isNotEmpty) {
+        await setSelectedTermId(terms.first.id);
+      } else {
+        await _prefs.remove(_currentTermKey);
+      }
+    }
+  }
+
+  String getSelectedTermId() {
+    final cur = _prefs.getString(_currentTermKey);
+    if (cur != null) return cur;
+    final terms = getTerms();
+    if (terms.isNotEmpty) return terms.first.id;
+    return '';
+  }
+
+  Future<void> setSelectedTermId(String id) async {
+    await _prefs.setString(_currentTermKey, id);
+
+    // Also update current user's semester text if matching
+    final terms = getTerms();
+    try {
+      final t = terms.firstWhere((element) => element.id == id);
+      final user = getCurrentUser();
+      if (user != null) {
+        await updateUser(user.copyWith(semester: '${t.name} · 2026–2027'));
+      }
+    } catch (_) {}
+  }
+
+  TermModel getSelectedTerm() {
+    final terms = getTerms();
+    if (terms.isEmpty) {
+      return TermModel(
+        id: 'term_default',
+        name: 'Học kỳ I',
+        startDate: getSchoolYearStartDate(),
+        endDate: getSchoolYearEndDate(),
+      );
+    }
+    final selId = getSelectedTermId();
+    try {
+      return terms.firstWhere((t) => t.id == selId);
+    } catch (_) {
+      return terms.first;
+    }
+  }
+
+  // --- School Year Configuration (Start of Year & End of Year) ---
 
   DateTime getSchoolYearStartDate() {
     final str = _prefs.getString(_schoolYearStartKey);
@@ -314,6 +460,15 @@ class LocalStorageService {
   }) async {
     await _prefs.setString(_schoolYearStartKey, DateTime(start.year, start.month, start.day).toIso8601String());
     await _prefs.setString(_schoolYearEndKey, DateTime(end.year, end.month, end.day).toIso8601String());
+
+    // Automatically synchronize the first term's start with start of year,
+    // and the last term's end with end of year
+    final terms = getTerms();
+    if (terms.isNotEmpty) {
+      terms.first = terms.first.copyWith(startDate: DateTime(start.year, start.month, start.day));
+      terms.last = terms.last.copyWith(endDate: DateTime(end.year, end.month, end.day));
+      await _saveTerms(terms);
+    }
   }
 
   // --- Auth & User Management ---

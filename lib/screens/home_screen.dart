@@ -101,7 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
             ListTile(
-              leading: const Icon(Icons.edit_note_rounded, color: AppColors.primaryBlue),
+              leading: const Icon(
+                Icons.edit_note_rounded,
+                color: AppColors.primaryBlue,
+              ),
               title: const Text('Cập nhật GPA / Thông tin học kỳ'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -110,7 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.logout_rounded, color: Colors.red),
-              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+              title: const Text(
+                'Đăng xuất',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () async {
                 Navigator.pop(ctx);
                 await LocalStorageService.instance.logout();
@@ -128,8 +134,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showEditGpaDialog() {
-    final gpaCtrl = TextEditingController(text: (_currentUser?.gpa ?? 8.4).toString());
-    final semesterCtrl = TextEditingController(text: _currentUser?.semester ?? 'Học kỳ I · 2026–2027');
+    final gpaCtrl = TextEditingController(
+      text: (_currentUser?.gpa ?? 8.4).toString(),
+    );
+    final semesterCtrl = TextEditingController(
+      text: _currentUser?.semester ?? 'Học kỳ I · 2026–2027',
+    );
 
     showDialog(
       context: context,
@@ -146,8 +156,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: gpaCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Điểm trung bình (GPA)'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Điểm trung bình (GPA)',
+              ),
             ),
           ],
         ),
@@ -159,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () async {
               if (_currentUser != null) {
-                final newGpa = double.tryParse(gpaCtrl.text) ?? _currentUser!.gpa;
+                final newGpa =
+                    double.tryParse(gpaCtrl.text) ?? _currentUser!.gpa;
                 final updated = _currentUser!.copyWith(
                   gpa: newGpa,
                   semester: semesterCtrl.text.trim(),
@@ -178,7 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeContent() {
     final user = _currentUser;
-    final userName = (user?.name != null && user!.name.isNotEmpty) ? user.name : 'Minh';
+    final userName = (user?.name != null && user!.name.isNotEmpty)
+        ? user.name
+        : 'Minh';
     final semester = user?.semester ?? 'Học kỳ I · 2026–2027';
     final gpa = user?.gpa ?? 8.4;
     final totalSubjects = user?.totalSubjects ?? 8;
@@ -202,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF2563EB),
-                  letterSpacing: -0.5,
+                  // letterSpacing: -0.5,
                 ),
               ),
               GestureDetector(
@@ -337,7 +354,10 @@ class _HomeScreenState extends State<HomeScreen> {
               // Card 1: Môn học
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
@@ -379,7 +399,10 @@ class _HomeScreenState extends State<HomeScreen> {
               // Card 2: Tiết / tuần
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
@@ -600,8 +623,14 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           selectedItemColor: const Color(0xFF4F46E5),
           unselectedItemColor: const Color(0xFF94A3B8),
-          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          selectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_filled),

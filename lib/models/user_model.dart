@@ -20,7 +20,7 @@ class UserModel {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'name': name,
       'email': email,
@@ -34,11 +34,11 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      password: json['password'] ?? '',
-      semester: json['semester'] ?? 'Học kỳ I · 2026–2027',
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      password: (json['password'] ?? '').toString(),
+      semester: (json['semester'] ?? 'Học kỳ I · 2026–2027').toString(),
       gpa: (json['gpa'] as num?)?.toDouble() ?? 8.4,
       totalSubjects: (json['totalSubjects'] as num?)?.toInt() ?? 8,
       weeklyHours: (json['weeklyHours'] as num?)?.toInt() ?? 24,

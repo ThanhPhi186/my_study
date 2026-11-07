@@ -16,17 +16,18 @@ class GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final IconData? currentIcon = icon;
     return Container(
       width: double.infinity,
       height: 54,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF7C3AED)],
+          colors: <Color>[Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF7C3AED)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
             blurRadius: 18,
@@ -51,7 +52,7 @@ class GradientButton extends StatelessWidget {
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: <Widget>[
                       Text(
                         text,
                         style: const TextStyle(
@@ -61,10 +62,10 @@ class GradientButton extends StatelessWidget {
                           letterSpacing: 0.3,
                         ),
                       ),
-                      if (icon != null) ...[
+                      if (currentIcon != null) ...<Widget>[
                         const SizedBox(width: 8),
                         Icon(
-                          icon,
+                          currentIcon,
                           color: Colors.white,
                           size: 20,
                         ),

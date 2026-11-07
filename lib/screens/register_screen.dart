@@ -15,11 +15,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
 
@@ -33,7 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,9 +65,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      Navigator.pushReplacement(
+      Navigator.pushReplacement<void, void>(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute<void>(builder: (BuildContext context) => const HomeScreen()),
       );
     } catch (e) {
       if (!mounted) return;
@@ -86,9 +86,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _handleGoogleRegister() async {
+  Future<void> _handleGoogleRegister() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future<void>.delayed(const Duration(milliseconds: 600));
     try {
       await LocalStorageService.instance.registerUser(
         name: 'Nguyễn Văn Minh',
@@ -96,7 +96,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: 'google_oauth_pass',
       );
     } catch (_) {
-      // If user exists, log in
       await LocalStorageService.instance.login(
         emailOrPhone: 'minh.google@studyflow.edu.vn',
         password: 'google_oauth_pass',
@@ -105,9 +104,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-    Navigator.pushReplacement(
+    Navigator.pushReplacement<void, void>(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute<void>(builder: (BuildContext context) => const HomeScreen()),
     );
   }
 
@@ -120,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               // Top Brand Header with Art accents
               const StudyFlowHeader(),
 
@@ -130,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       const SizedBox(height: 12),
                       // Title "Tạo tài khoản"
                       RichText(
@@ -141,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             letterSpacing: -0.5,
                             color: Color(0xFF0F172A),
                           ),
-                          children: [
+                          children: <TextSpan>[
                             TextSpan(text: 'Tạo tài '),
                             TextSpan(
                               text: 'khoản',
@@ -171,7 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'Nguyễn Văn A',
                         prefixIcon: Icons.person_outline_rounded,
                         controller: _nameController,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.trim().isEmpty) {
                             return 'Vui lòng nhập họ và tên';
                           }
@@ -187,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         prefixIcon: Icons.mail_outline_rounded,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.trim().isEmpty) {
                             return 'Vui lòng nhập email';
                           }
@@ -206,7 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         prefixIcon: Icons.lock_outline_rounded,
                         isPassword: true,
                         controller: _passwordController,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.isEmpty) {
                             return 'Vui lòng nhập mật khẩu';
                           }
@@ -225,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         prefixIcon: Icons.lock_outline_rounded,
                         isPassword: true,
                         controller: _confirmPasswordController,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.isEmpty) {
                             return 'Vui lòng xác nhận mật khẩu';
                           }
@@ -247,7 +246,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       // Divider "Hoặc"
                       Row(
-                        children: [
+                        children: <Widget>[
                           Expanded(
                             child: Container(
                               height: 1,
@@ -287,7 +286,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                          children: <Widget>[
                             const Text(
                               'Đã có tài khoản? ',
                               style: TextStyle(
@@ -298,10 +297,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                Navigator.pushReplacement(
+                                Navigator.pushReplacement<void, void>(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LoginScreen(),
+                                  MaterialPageRoute<void>(
+                                    builder: (BuildContext context) => const LoginScreen(),
                                   ),
                                 );
                               },

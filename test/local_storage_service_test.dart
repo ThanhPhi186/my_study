@@ -83,6 +83,95 @@ void main() {
 
       await LocalStorageService.instance.addSubject(newSubject);
       expect(LocalStorageService.instance.getSubjects().length, equals(initialCount + 1));
+
+      // Update subject
+      final updatedSubject = newSubject.copyWith(
+        score: 9.5,
+        testDate: DateTime(2026, 11, 20),
+        testTitle: 'Cuối kỳ',
+      );
+      await LocalStorageService.instance.updateSubject(updatedSubject);
+      final fetched = LocalStorageService.instance.getSubjects().firstWhere((s) => s.id == 'sub_test');
+      expect(fetched.score, equals(9.5));
+      expect(fetched.testDate, isNotNull);
+      expect(fetched.testTitle, equals('Cuối kỳ'));
+
+      // Delete subject
+      await LocalStorageService.instance.deleteSubject('sub_test');
+      expect(LocalStorageService.instance.getSubjects().length, equals(initialCount));
+    });
+
+    test('Subject calculated score with weighted grades', () {
+      final subjectWithGrades = SubjectModel(
+        id: 'sub_math',
+        name: 'Toán cao cấp',
+        grades: [
+          GradeItem(id: 'g1', name: 'Thường xuyên 1', weight: 1, score: 8.5),
+          GradeItem(id: 'g2', name: 'Thường xuyên 2', weight: 1, score: 9.0),
+          GradeItem(id: 'g3', name: 'Giữa kỳ', weight: 2, score: 8.0),
+          GradeItem(id: 'g4', name: 'Cuối kỳ', weight: 3, score: 9.0),
+        ],
+      );
+
+      // (8.5*1 + 9.0*1 + 8.0*2 + 9.0*3) / (1 + 1 + 2 + 3) = (8.5 + 9.0 + 16.0 + 27.0) / 7 = 60.5 / 7 = 8.64 -> 8.6
+      expect(subjectWithGrades.calculatedScore, equals(8.6));
+    });
+
+    test('Schedule repeat interval and occursInWeek logic', () {
+      // 1. Repeating subject every week
+      final repeatWeekly = ScheduleModel(
+        id: 'sch_weekly',
+        title: 'Toán',
+        startTime: '08:00',
+        endTime: '09:30',
+        room: 'P.201',
+        symbol: 'Σ',
+        backgroundColorValue: 0xFFEFF6FF,
+        foregroundColorValue: 0xFF3B82F6,
+        isActivity: false,
+        repeatInterval: 1,
+        startWeek: 1,
+      );
+      expect(repeatWeekly.occursInWeek(1), isTrue);
+      expect(repeatWeekly.occursInWeek(5), isTrue);
+      expect(repeatWeekly.occursInWeek(12), isTrue);
+
+      // 2. Repeating subject every 2 weeks starting from week 2
+      final repeatBiweekly = ScheduleModel(
+        id: 'sch_biweekly',
+        title: 'Thí nghiệm',
+        startTime: '13:00',
+        endTime: '15:00',
+        room: 'Lab 1',
+        symbol: '🔬',
+        backgroundColorValue: 0xFFEFF6FF,
+        foregroundColorValue: 0xFF3B82F6,
+        isActivity: false,
+        repeatInterval: 2,
+        startWeek: 2,
+      );
+      expect(repeatBiweekly.occursInWeek(2), isTrue);
+      expect(repeatBiweekly.occursInWeek(3), isFalse);
+      expect(repeatBiweekly.occursInWeek(4), isTrue);
+      expect(repeatBiweekly.occursInWeek(5), isFalse);
+
+      // 3. Custom activity (does not repeat, only on specific week)
+      final activity = ScheduleModel(
+        id: 'act_1',
+        title: 'Họp CLB',
+        startTime: '17:00',
+        endTime: '18:30',
+        room: 'Hội trường',
+        symbol: '⚡',
+        backgroundColorValue: 0xFFFEF3C7,
+        foregroundColorValue: 0xFFD97706,
+        isActivity: true,
+        repeatInterval: 0,
+        week: 12,
+      );
+      expect(activity.occursInWeek(12), isTrue);
+      expect(activity.occursInWeek(11), isFalse);
+      expect(activity.occursInWeek(13), isFalse);
     });
 
     test('Term management and week calculation', () async {

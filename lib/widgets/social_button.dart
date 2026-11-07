@@ -21,13 +21,13 @@ class _GoogleLogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double w = size.width;
     final double h = size.height;
-    final center = Offset(w / 2, h / 2);
-    final radius = w / 2;
+    final Offset center = Offset(w / 2, h / 2);
+    final double radius = w / 2;
 
-    final rect = Rect.fromCircle(center: center, radius: radius);
+    final Rect rect = Rect.fromCircle(center: center, radius: radius);
 
     // Red sector
-    final paintRed = Paint()
+    final Paint paintRed = Paint()
       ..color = const Color(0xFFEA4335)
       ..style = PaintingStyle.stroke
       ..strokeWidth = radius * 0.42
@@ -35,7 +35,7 @@ class _GoogleLogoPainter extends CustomPainter {
     canvas.drawArc(rect.deflate(radius * 0.21), 3.14159 * 1.05, 3.14159 * 0.75, false, paintRed);
 
     // Yellow sector
-    final paintYellow = Paint()
+    final Paint paintYellow = Paint()
       ..color = const Color(0xFFFBBC05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = radius * 0.42
@@ -43,7 +43,7 @@ class _GoogleLogoPainter extends CustomPainter {
     canvas.drawArc(rect.deflate(radius * 0.21), 3.14159 * 0.58, 3.14159 * 0.52, false, paintYellow);
 
     // Green sector
-    final paintGreen = Paint()
+    final Paint paintGreen = Paint()
       ..color = const Color(0xFF34A853)
       ..style = PaintingStyle.stroke
       ..strokeWidth = radius * 0.42
@@ -51,7 +51,7 @@ class _GoogleLogoPainter extends CustomPainter {
     canvas.drawArc(rect.deflate(radius * 0.21), 3.14159 * 0.0, 3.14159 * 0.65, false, paintGreen);
 
     // Blue sector & horizontal bar
-    final paintBlue = Paint()
+    final Paint paintBlue = Paint()
       ..color = const Color(0xFF4285F4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = radius * 0.42
@@ -59,10 +59,10 @@ class _GoogleLogoPainter extends CustomPainter {
     canvas.drawArc(rect.deflate(radius * 0.21), 3.14159 * 1.75, 3.14159 * 0.35, false, paintBlue);
 
     // Blue horizontal bar
-    final barPaint = Paint()
+    final Paint barPaint = Paint()
       ..color = const Color(0xFF4285F4)
       ..style = PaintingStyle.fill;
-    final barRect = Rect.fromLTWH(
+    final Rect barRect = Rect.fromLTWH(
       center.dx,
       center.dy - (radius * 0.21),
       radius * 0.95,
@@ -99,7 +99,7 @@ class SocialButton extends StatelessWidget {
           color: const Color(0xFFE2E8F0),
           width: 1.2,
         ),
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
@@ -114,7 +114,7 @@ class SocialButton extends StatelessWidget {
           onTap: onPressed,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               icon,
               const SizedBox(width: 12),
               Text(

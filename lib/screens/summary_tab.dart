@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../models/subject_model.dart';
+import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 
 class SummaryTab extends StatelessWidget {
@@ -8,15 +10,15 @@ class SummaryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = LocalStorageService.instance.getCurrentUser();
-    final subjects = LocalStorageService.instance.getSubjects();
+    final UserModel? user = LocalStorageService.instance.getCurrentUser();
+    final List<SubjectModel> subjects = LocalStorageService.instance.getSubjects();
 
     double calculatedGpa = 0.0;
     int totalCredits = 0;
     if (subjects.isNotEmpty) {
       double totalWeightedScore = 0.0;
-      for (final s in subjects) {
-        totalWeightedScore += s.score * s.credits;
+      for (final SubjectModel s in subjects) {
+        totalWeightedScore += s.calculatedScore * s.credits;
         totalCredits += s.credits;
       }
       calculatedGpa = totalCredits > 0 ? (totalWeightedScore / totalCredits) : (user?.gpa ?? 8.4);
@@ -42,7 +44,7 @@ class SummaryTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             // GPA Card
             Container(
               width: double.infinity,
@@ -50,7 +52,7 @@ class SummaryTab extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: AppColors.heroCardGradient,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
+                boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: AppColors.primaryIndigo.withValues(alpha: 0.3),
                     blurRadius: 18,
@@ -60,7 +62,7 @@ class SummaryTab extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   const Text(
                     'ĐIỂM TRUNG BÌNH HỌC KỲ',
                     style: TextStyle(
@@ -74,7 +76,7 @@ class SummaryTab extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
-                    children: [
+                    children: <Widget>[
                       Text(
                         calculatedGpa.toStringAsFixed(1),
                         style: const TextStyle(
@@ -122,7 +124,7 @@ class SummaryTab extends StatelessWidget {
 
             // Performance metrics row
             Row(
-              children: [
+              children: <Widget>[
                 Expanded(
                   child: _buildMetricCard(
                     title: 'Tổng tín chỉ',
@@ -159,7 +161,7 @@ class SummaryTab extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
+                boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 10,
@@ -168,24 +170,24 @@ class SummaryTab extends StatelessWidget {
                 ],
               ),
               child: Column(
-                children: [
+                children: <Widget>[
                   _buildProgressRow(
                     label: 'Điểm A (8.5 - 10.0)',
-                    count: subjects.where((s) => s.score >= 8.5).length,
+                    count: subjects.where((SubjectModel s) => s.calculatedScore >= 8.5).length,
                     total: subjects.isEmpty ? 1 : subjects.length,
                     color: const Color(0xFF10B981),
                   ),
                   const SizedBox(height: 14),
                   _buildProgressRow(
                     label: 'Điểm B (7.0 - 8.4)',
-                    count: subjects.where((s) => s.score >= 7.0 && s.score < 8.5).length,
+                    count: subjects.where((SubjectModel s) => s.calculatedScore >= 7.0 && s.calculatedScore < 8.5).length,
                     total: subjects.isEmpty ? 1 : subjects.length,
                     color: const Color(0xFF3B82F6),
                   ),
                   const SizedBox(height: 14),
                   _buildProgressRow(
                     label: 'Điểm C (5.5 - 6.9)',
-                    count: subjects.where((s) => s.score >= 5.5 && s.score < 7.0).length,
+                    count: subjects.where((SubjectModel s) => s.calculatedScore >= 5.5 && s.calculatedScore < 7.0).length,
                     total: subjects.isEmpty ? 1 : subjects.length,
                     color: const Color(0xFFF59E0B),
                   ),
@@ -210,7 +212,7 @@ class SummaryTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
@@ -220,7 +222,7 @@ class SummaryTab extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 10),
           Text(
@@ -254,10 +256,10 @@ class SummaryTab extends StatelessWidget {
     final double pct = total > 0 ? (count / total) : 0.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children: <Widget>[
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+          children: <Widget>[
             Text(
               label,
               style: const TextStyle(

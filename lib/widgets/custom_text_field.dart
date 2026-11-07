@@ -31,16 +31,17 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final String? currentError = _errorText;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children: <Widget>[
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _errorText != null
+              color: currentError != null
                   ? Colors.red.shade400
                   : const Color(0xFFE2E8F0),
               width: 1.2,
@@ -48,7 +49,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+            children: <Widget>[
               Icon(
                 widget.prefixIcon,
                 color: const Color(0xFF94A3B8),
@@ -59,7 +60,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
-                  children: [
+                  children: <Widget>[
                     Text(
                       widget.label,
                       style: const TextStyle(
@@ -74,18 +75,25 @@ class _CustomTextFieldState extends State<CustomTextField> {
                       controller: widget.controller,
                       obscureText: widget.isPassword ? _obscureText : false,
                       keyboardType: widget.keyboardType,
-                      onChanged: (val) {
-                        if (_errorText != null && widget.validator != null) {
+                      onChanged: (String val) {
+                        final String? Function(String?)? valFn = widget.validator;
+                        if (_errorText != null && valFn != null) {
                           setState(() {
-                            _errorText = widget.validator!(val);
+                            _errorText = valFn(val);
                           });
                         }
                       },
-                      validator: (val) {
-                        final err = widget.validator?.call(val);
-                        setState(() {
-                          _errorText = err;
-                        });
+                      validator: (String? val) {
+                        final String? err = widget.validator?.call(val);
+                        if (_errorText != err) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                _errorText = err;
+                              });
+                            }
+                          });
+                        }
                         return err;
                       },
                       style: const TextStyle(
@@ -134,12 +142,12 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ],
           ),
         ),
-        if (_errorText != null) ...[
+        if (currentError != null) ...<Widget>[
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 16),
             child: Text(
-              _errorText!,
+              currentError,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.red.shade600,

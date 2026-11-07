@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   UserModel? _currentUser;
-  List<ScheduleModel> _todaySchedules = [];
+  List<ScheduleModel> _todaySchedules = <ScheduleModel>[];
 
   @override
   void initState() {
@@ -29,8 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _refreshData() {
     setState(() {
       _currentUser = LocalStorageService.instance.getCurrentUser();
-      final allSchedules = LocalStorageService.instance.getSchedules();
-      _todaySchedules = allSchedules.where((s) => s.day == 'Hôm nay').toList();
+      final List<ScheduleModel> allSchedules = LocalStorageService.instance.getSchedules();
+      _todaySchedules = allSchedules.where((ScheduleModel s) => s.day == 'Hôm nay' || s.day == 'T3').toList();
       if (_todaySchedules.isEmpty && allSchedules.isNotEmpty) {
         _todaySchedules = allSchedules.take(3).toList();
       }
@@ -38,16 +38,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showUserMenu() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
+      builder: (BuildContext ctx) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             Container(
               width: 40,
               height: 4,
@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             Row(
-              children: [
+              children: <Widget>[
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: const Color(0xFFEDE9FE),
@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         _currentUser?.name ?? 'Minh',
                         style: const TextStyle(
@@ -121,9 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pop(ctx);
                 await LocalStorageService.instance.logout();
                 if (!mounted) return;
-                Navigator.pushReplacement(
+                Navigator.pushReplacement<void, void>(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  MaterialPageRoute<void>(builder: (BuildContext context) => const LoginScreen()),
                 );
               },
             ),
@@ -134,21 +134,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showEditGpaDialog() {
-    final gpaCtrl = TextEditingController(
+    final TextEditingController gpaCtrl = TextEditingController(
       text: (_currentUser?.gpa ?? 8.4).toString(),
     );
-    final semesterCtrl = TextEditingController(
+    final TextEditingController semesterCtrl = TextEditingController(
       text: _currentUser?.semester ?? 'Học kỳ I · 2026–2027',
     );
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (BuildContext ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Cập nhật học kỳ & Điểm GPA'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             TextField(
               controller: semesterCtrl,
               decoration: const InputDecoration(labelText: 'Học kỳ'),
@@ -165,17 +165,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Hủy'),
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_currentUser != null) {
-                final newGpa =
-                    double.tryParse(gpaCtrl.text) ?? _currentUser!.gpa;
-                final updated = _currentUser!.copyWith(
+              final UserModel? curUser = _currentUser;
+              if (curUser != null) {
+                final double newGpa = double.tryParse(gpaCtrl.text) ?? curUser.gpa;
+                final UserModel updated = curUser.copyWith(
                   gpa: newGpa,
                   semester: semesterCtrl.text.trim(),
                 );
@@ -192,34 +192,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    final user = _currentUser;
-    final userName = (user?.name != null && user!.name.isNotEmpty)
+    final UserModel? user = _currentUser;
+    final String userName = (user?.name != null && user!.name.isNotEmpty)
         ? user.name
         : 'Minh';
-    final semester = user?.semester ?? 'Học kỳ I · 2026–2027';
-    final gpa = user?.gpa ?? 8.4;
-    final totalSubjects = user?.totalSubjects ?? 8;
-    final weeklyHours = user?.weeklyHours ?? 24;
+    final String semester = user?.semester ?? 'Học kỳ I · 2026–2027';
+    final double gpa = user?.gpa ?? 8.4;
+    final int totalSubjects = user?.totalSubjects ?? 8;
+    final int weeklyHours = user?.weeklyHours ?? 24;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           const SizedBox(height: 12),
 
           // Header: StudyFlow title + User Avatar "M"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               const Text(
                 'StudyFlow',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF2563EB),
-                  // letterSpacing: -0.5,
                 ),
               ),
               GestureDetector(
@@ -268,18 +267,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
 
-          // GPA Hero Card (Image 1 reference)
+          // GPA Hero Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                colors: <Color>[Color(0xFF3B82F6), Color(0xFF8B5CF6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
+              boxShadow: <BoxShadow>[
                 BoxShadow(
                   color: const Color(0xFF6366F1).withValues(alpha: 0.35),
                   blurRadius: 20,
@@ -290,11 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
+              children: <Widget>[
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       const Text(
                         'ĐIỂM TRUNG BÌNH',
                         style: TextStyle(
@@ -332,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.only(bottom: 4.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                    children: <Widget>[
                       _buildBar(height: 20, opacity: 0.6),
                       const SizedBox(width: 5),
                       _buildBar(height: 34, opacity: 0.75),
@@ -350,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Two Stat Cards Row
           Row(
-            children: [
+            children: <Widget>[
               // Card 1: Môn học
               Expanded(
                 child: Container(
@@ -361,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
+                    boxShadow: <BoxShadow>[
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 10,
@@ -371,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         '$totalSubjects',
                         style: const TextStyle(
@@ -406,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
+                    boxShadow: <BoxShadow>[
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 10,
@@ -416,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         '$weeklyHours',
                         style: const TextStyle(
@@ -446,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Section "Lịch học hôm nay" Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               const Text(
                 'Lịch học hôm nay',
                 style: TextStyle(
@@ -481,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
+              boxShadow: <BoxShadow>[
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 12,
@@ -500,10 +499,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : Column(
-                    children: List.generate(_todaySchedules.length, (i) {
-                      final item = _todaySchedules[i];
+                    children: List<Widget>.generate(_todaySchedules.length, (int i) {
+                      final ScheduleModel item = _todaySchedules[i];
                       return Column(
-                        children: [
+                        children: <Widget>[
                           _buildScheduleRow(item),
                           if (i < _todaySchedules.length - 1)
                             const Divider(
@@ -537,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
-        children: [
+        children: <Widget>[
           Container(
             width: 48,
             height: 48,
@@ -560,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Text(
                   item.title,
                   style: const TextStyle(
@@ -593,7 +592,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: IndexedStack(
           index: _currentIndex,
-          children: [
+          children: <Widget>[
             _buildHomeContent(),
             ScheduleTab(onDataChanged: _refreshData),
             SubjectsTab(onDataChanged: _refreshData),
@@ -613,7 +612,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
+          onTap: (int index) {
             setState(() {
               _currentIndex = index;
             });
@@ -631,7 +630,7 @@ class _HomeScreenState extends State<HomeScreen> {
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
-          items: const [
+          items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.home_filled),
               label: 'Trang chủ',

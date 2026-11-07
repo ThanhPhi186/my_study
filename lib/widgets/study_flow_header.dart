@@ -12,11 +12,12 @@ class StudyFlowHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? currentTagline = subtitleTagline;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
+          colors: <Color>[
             const Color(0xFFF0F7FF),
             const Color(0xFFEBF4FF).withValues(alpha: 0.6),
             const Color(0xFFFAF5FF).withValues(alpha: 0.3),
@@ -28,7 +29,7 @@ class StudyFlowHeader extends StatelessWidget {
       ),
       child: Stack(
         clipBehavior: Clip.none,
-        children: [
+        children: <Widget>[
           // Decorative soft background blobs
           Positioned(
             right: -20,
@@ -39,7 +40,7 @@ class StudyFlowHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
+                  colors: <Color>[
                     const Color(0xFF93C5FD).withValues(alpha: 0.25),
                     Colors.white.withValues(alpha: 0.0),
                   ],
@@ -59,22 +60,22 @@ class StudyFlowHeader extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 // Logo & App Name Row
                 Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
+                  children: <Widget>[
                     Container(
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF60A5FA), Color(0xFF4F46E5)],
+                          colors: <Color>[Color(0xFF60A5FA), Color(0xFF4F46E5)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
+                        boxShadow: <BoxShadow>[
                           BoxShadow(
                             color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                             blurRadius: 10,
@@ -93,7 +94,7 @@ class StudyFlowHeader extends StatelessWidget {
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: <Widget>[
                         RichText(
                           text: const TextSpan(
                             style: TextStyle(
@@ -102,7 +103,7 @@ class StudyFlowHeader extends StatelessWidget {
                               letterSpacing: -0.5,
                               color: Color(0xFF1E293B),
                             ),
-                            children: [
+                            children: <TextSpan>[
                               TextSpan(text: 'Study'),
                               TextSpan(
                                 text: 'Flow',
@@ -127,7 +128,7 @@ class StudyFlowHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (subtitleTagline != null) ...[
+                if (currentTagline != null) ...<Widget>[
                   const SizedBox(height: 24),
                   Container(
                     width: 32,
@@ -139,7 +140,7 @@ class StudyFlowHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    subtitleTagline!,
+                    currentTagline,
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -162,7 +163,7 @@ class StudyFlowHeader extends StatelessWidget {
       width: 110,
       height: 90,
       child: Stack(
-        children: [
+        children: <Widget>[
           // Mini calendar widget
           Positioned(
             right: 0,
@@ -172,7 +173,7 @@ class StudyFlowHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(8),
-                boxShadow: [
+                boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 6,

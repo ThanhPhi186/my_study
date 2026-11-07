@@ -12,7 +12,7 @@ class TermModel {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'name': name,
       'startDate': startDate.toIso8601String(),
@@ -22,10 +22,10 @@ class TermModel {
 
   factory TermModel.fromJson(Map<String, dynamic> json) {
     return TermModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? 'Học kỳ',
-      startDate: DateTime.tryParse(json['startDate'] ?? '') ?? DateTime(2026, 7, 27),
-      endDate: DateTime.tryParse(json['endDate'] ?? '') ?? DateTime(2027, 1, 17),
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? 'Học kỳ').toString(),
+      startDate: DateTime.tryParse((json['startDate'] ?? '').toString()) ?? DateTime(2026, 7, 27),
+      endDate: DateTime.tryParse((json['endDate'] ?? '').toString()) ?? DateTime(2027, 1, 17),
     );
   }
 
@@ -43,8 +43,8 @@ class TermModel {
 
   // Total weeks in this term
   int get totalWeeks {
-    final diffDays = lastSunday.difference(firstMonday).inDays + 1;
-    return (diffDays / 7).round().clamp(1, 60);
+    final int diffDays = lastSunday.difference(firstMonday).inDays + 1;
+    return (diffDays / 7).round().clamp(1, 60).toInt();
   }
 
   // Get Monday of week w (1..totalWeeks)
@@ -54,8 +54,8 @@ class TermModel {
 
   // Get all 7 days for week w (Monday to Sunday)
   List<DateTime> getDaysOfWeek(int week) {
-    final monday = getMondayOfWeek(week);
-    return List.generate(7, (i) => monday.add(Duration(days: i)));
+    final DateTime monday = getMondayOfWeek(week);
+    return List<DateTime>.generate(7, (int i) => monday.add(Duration(days: i)));
   }
 
   TermModel copyWith({

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/gradient_button.dart';
@@ -16,9 +17,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'minh@studyflow.edu.vn');
-  final _passwordController = TextEditingController(text: 'password123');
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController(text: 'minh@studyflow.edu.vn');
+  final TextEditingController _passwordController = TextEditingController(text: 'password123');
 
   bool _isLoading = false;
 
@@ -30,14 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final user = await LocalStorageService.instance.login(
+      final UserModel user = await LocalStorageService.instance.login(
         emailOrPhone: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -51,9 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      Navigator.pushReplacement(
+      Navigator.pushReplacement<void, void>(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute<void>(builder: (BuildContext context) => const HomeScreen()),
       );
     } catch (e) {
       if (!mounted) return;
@@ -72,13 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleSocialLogin(String provider) async {
+  Future<void> _handleSocialLogin(String provider) async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future<void>.delayed(const Duration(milliseconds: 600));
 
     try {
-      // Auto-login or register demo user
-      final email = '${provider.toLowerCase()}user@studyflow.edu.vn';
+      final String email = '${provider.toLowerCase()}user@studyflow.edu.vn';
       try {
         await LocalStorageService.instance.registerUser(
           name: '$provider User',
@@ -95,23 +95,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-    Navigator.pushReplacement(
+    Navigator.pushReplacement<void, void>(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute<void>(builder: (BuildContext context) => const HomeScreen()),
     );
   }
 
   void _showForgotPasswordDialog() {
-    final forgotEmailController = TextEditingController(text: _emailController.text);
-    showDialog(
+    final TextEditingController forgotEmailController = TextEditingController(text: _emailController.text);
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (BuildContext ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Quên mật khẩu?', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             const Text(
               'Nhập email của bạn để nhận liên kết khôi phục mật khẩu:',
               style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               // Top Brand Header with Art accents & Tagline
               const StudyFlowHeader(
                 subtitleTagline: 'NHỮNG ĐIỀU TỐT ĐẸP\nLUÔN BẮT ĐẦU TỪ BẠN',
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       const SizedBox(height: 12),
                       // Title "Đăng nhập"
                       const Text(
@@ -194,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       // Subtitle "Chào mừng bạn quay lại 👋"
                       const Row(
-                        children: [
+                        children: <Widget>[
                           Text(
                             'Chào mừng bạn quay lại ',
                             style: TextStyle(
@@ -215,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Icons.mail_outline_rounded,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.trim().isEmpty) {
                             return 'Vui lòng nhập email hoặc số điện thoại';
                           }
@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Icons.lock_outline_rounded,
                         isPassword: true,
                         controller: _passwordController,
-                        validator: (val) {
+                        validator: (String? val) {
                           if (val == null || val.isEmpty) {
                             return 'Vui lòng nhập mật khẩu';
                           }
@@ -267,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       // Divider "Hoặc"
                       Row(
-                        children: [
+                        children: <Widget>[
                           Expanded(
                             child: Container(
                               height: 1,
@@ -319,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                          children: <Widget>[
                             const Text(
                               'Chưa có tài khoản? ',
                               style: TextStyle(
@@ -330,10 +330,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                Navigator.pushReplacement(
+                                Navigator.pushReplacement<void, void>(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const RegisterScreen(),
+                                  MaterialPageRoute<void>(
+                                    builder: (BuildContext context) => const RegisterScreen(),
                                   ),
                                 );
                               },
